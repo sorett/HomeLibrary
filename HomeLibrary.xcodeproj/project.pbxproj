@@ -38,7 +38,7 @@
 		8236D8782436287500FF07D4 /* SettingTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingTableViewController.swift; sourceTree = "<group>"; };
 		8236D87C2436B81200FF07D4 /* BookListTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookListTableViewCell.swift; sourceTree = "<group>"; };
 		8236D87E2436BAE700FF07D4 /* BookViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookViewController.swift; sourceTree = "<group>"; };
-		8236D8842436E29600FF07D4 /* SingleBook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleBook.swift; sourceTree = SOURCE_ROOT; };
+		8236D8842436E29600FF07D4 /* SingleBook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SingleBook.swift; path = HomeLibrary/SingleBook.swift; sourceTree = SOURCE_ROOT; };
 		8236D8862437322900FF07D4 /* CoreDataConnect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataConnect.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 

@@ -20,7 +20,7 @@ class SearchBookViewController: UIViewController, AVCaptureMetadataOutputObjects
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
-        //searchISBN.text = "9789579072458"
+        searchISBN.text = "9789579072458"
     }
     
     @IBAction func Search(_ sender: Any) {
