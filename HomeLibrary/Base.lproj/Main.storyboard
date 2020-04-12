@@ -442,16 +442,7 @@
                     </tableView>
                     <navigationItem key="navigationItem" id="0WJ-qH-PK6">
                         <nil key="title"/>
-                        <textField key="titleView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="輸入書名或ISBN搜尋🔍" textAlignment="natural" minimumFontSize="17" id="3JM-d3-jPk">
-                            <rect key="frame" x="57" y="5" width="300" height="34"/>
-                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                            <textInputTraits key="textInputTraits" returnKeyType="search" enablesReturnKeyAutomatically="YES"/>
-                        </textField>
                     </navigationItem>
-                    <connections>
-                        <outlet property="searchTextField" destination="3JM-d3-jPk" id="prL-B6-t7X"/>
-                    </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="aXV-u7-dq7" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
@@ -501,6 +492,9 @@
                         </connections>
                     </tableView>
                     <navigationItem key="navigationItem" id="RWw-f9-HME"/>
+                    <connections>
+                        <outlet property="versionLabel" destination="gay-hv-fq8" id="BVL-J4-a1H"/>
+                    </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Svo-jX-6TY" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>

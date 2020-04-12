@@ -178,6 +178,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
             
             //print(thisbook)
             if insertResult {
+                //跨頁傳送值
                 let notificationName = Notification.Name("GetUpdateNotice")
                 NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":"0","data":thisbook])
 
@@ -198,6 +199,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
                 
                 alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: nil))
  
+                //跨頁傳送值
                 let notificationName = Notification.Name("GetUpdateNotice")
                 NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!,"note":noteText.text!])
                 
@@ -212,6 +214,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
             let deleteResult = coreDataConnect.delete(
                 myEntityName, predicate: sql)
             if deleteResult {
+                //跨頁傳送值
                 let notificationName = Notification.Name("GetUpdateNotice")
                 NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!])
 

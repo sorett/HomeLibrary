@@ -9,22 +9,24 @@
 import UIKit
 import CoreData
 
-class ShelveTableViewController: UITableViewController {
+class ShelveTableViewController: UITableViewController, UISearchResultsUpdating {
 
     //Connect core data
     var records:[[String : String]] = []
-    var cloneRecords:[[String : String]] = []
+    var filterRecords:[[String : String]] = []
     let myEntityName = "Booklists"
     let myContext =
          (UIApplication.shared.delegate as! AppDelegate)
              .persistentContainer.viewContext
-    @IBOutlet weak var searchTextField: UITextField!
-    
+    var mySearchController: UISearchController?
 
     @IBSegueAction func showBok(_ coder: NSCoder) -> BookViewController? {
         if let row = tableView.indexPathForSelectedRow?.row {
 
-            let result = records[row]
+            let result = ((mySearchController?.isActive)!) ? filterRecords[row] : records[row]
+            
+            //let result = records[row]
+            
             if let isbn = result["isbn"]{
                 let controller = BookViewController(coder: coder)
                     
@@ -65,101 +67,116 @@ class ShelveTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.navigationItem.title = "書目列表"
         
         getData()
         //添加刷新
         refreshControl = UIRefreshControl()
         let attributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
         refreshControl?.attributedTitle = NSAttributedString(string: "更新資料", attributes: attributes)
-        refreshControl?.tintColor = UIColor.white
-        refreshControl?.backgroundColor = UIColor.black
+        refreshControl?.tintColor = UIColor.black
+        //refreshControl?.backgroundColor = UIColor.white
         refreshControl?.addTarget(self, action: #selector(getRefreshData), for: UIControl.Event.valueChanged)
         tableView.refreshControl = refreshControl
         
+        //跨頁接收值
         let notificationName = Notification.Name("GetUpdateNotice")
         NotificationCenter.default.addObserver(self, selector: #selector(updateRecord(notice:)), name: notificationName, object: nil)
+        
+        //Search
+        settingSearchController()
         
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
 
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
-        
+
+        /*
         self.searchTextField!.addTarget(self, action: #selector(self.searchEditBegin(textField:)), for: .editingDidBegin)
         self.searchTextField!.addTarget(self, action: #selector(self.searchEditEnter), for: .primaryActionTriggered)
         self.searchTextField!.addTarget(self, action: #selector(self.searchEditChange), for: .editingChanged)
+     */
     }
     
-    @objc func searchEditBegin(textField:UITextField){
-        print("begin: \(textField)")
+    //Search func start
+    func settingSearchController(){
+        mySearchController = UISearchController(searchResultsController: nil)
+        mySearchController?.searchResultsUpdater = self
+        self.navigationItem.searchController = mySearchController
+        mySearchController?.searchBar.placeholder = "請輸入書名或ISBN"
     }
     
-    @objc func searchEditEnter(textField:UITextField){
-        print("enter: \(textField)")
-                  /*
-                  let str = sender.text!
-                  for log in records{
-                      if log["title"]!.contains(str) || log["isbn"]!.contains(str){
-                          print(log)
-                          cloneRecords.append(log)
-                      }
-                  }
-                  records = cloneRecords
-                  //reloadData
-                  DispatchQueue.main.async {
-                      self.tableView.reloadData()
-                      //print("reload")
-                  }
-           */
-        
+    func updateSearchResults(for searchController: UISearchController) {
+        if let searchText = searchController.searchBar.text {
+            filterContent(for: searchText)
+            tableView.reloadData()
+            searchController.obscuresBackgroundDuringPresentation = false
+        }
     }
-       
-    @objc func searchEditChange(textField:UITextField){
-       print("Change: \(textField)")
+    
+    func filterContent(for searchText: String){
+        filterRecords = records.filter({ (filterArray) -> Bool in
+           let words = filterArray["title"]!
+           let isbn = filterArray["isbn"]!
+           let isMach = words.localizedCaseInsensitiveContains(searchText) ||
+                        isbn.localizedCaseInsensitiveContains(searchText)
+           return isMach
+       })
     }
+    //Search func end
     
     @objc func updateRecord(notice:Notification){
         
         let action = notice.userInfo!["action"] as! String
         let idx = Int(notice.userInfo!["idx"] as! String)
+      
+        if (mySearchController?.isActive)! {
+            //return filterRecords.count
+        } else {
+            //return records.count
+        }
         
         switch action{
-        case "CREATE":
-            let book:[String:String] = notice.userInfo!["data"] as! [String : String]
+            case "CREATE":
+                let book:[String:String] = notice.userInfo!["data"] as! [String : String]
+                
+                let thisBook = [
+                    "provider" : book["provider"]!,
+                    "isbn" : book["isbn"]!,
+                    "title" : book["title"]!,
+                    "authors" : book["authors"]!,
+                    "note" : book["note"]!,
+                    "bookdescription" : book["bookdescription"]!,
+                    "publisher" : book["publisher"]!,
+                    "publisheddate" : book["publisheddate"]!,
+                    "adddate" : book["adddate"]!,
+                    "cover" : book["cover"]!,
+                ]
+                
+                //print(thisBook)
+                records.append(thisBook)
+            break;
             
-            let thisBook = [
-                "provider" : book["provider"]!,
-                "isbn" : book["isbn"]!,
-                "title" : book["title"]!,
-                "authors" : book["authors"]!,
-                "note" : book["note"]!,
-                "bookdescription" : book["bookdescription"]!,
-                "publisher" : book["publisher"]!,
-                "publisheddate" : book["publisheddate"]!,
-                "adddate" : book["adddate"]!,
-                "cover" : book["cover"]!,
-            ]
+            case "UPDATE":
+                if let note = notice.userInfo!["note"] as? String{
+                    records[idx!]["note"] = note
+                }
+            break;
             
-            //print(thisBook)
-            records.append(thisBook)
+            case "DELETE":
+                records.remove(at: idx!)
             break;
-        case "UPDATE":
-            if let note = notice.userInfo!["note"] as? String{
-                records[idx!]["note"] = note
-            }
-            break;
-        case "DELETE":
-            records.remove(at: idx!)
-            break;
-        default:
-            print("nothing")
+            
+            default:
+                print("nothing")
             break;
         }
    }
     
     @objc func getData() {
         //clear all
-        records.removeAll()
+        //records.removeAll()
         
         // select
         let coreDataConnect = CoreDataConnect(context: myContext)
@@ -206,14 +223,20 @@ class ShelveTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
         
-        return records.count
+        if (mySearchController?.isActive)! {
+            return filterRecords.count
+        } else {
+            return records.count
+        }
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Shelve", for: indexPath) as! BookListTableViewCell
 
         // Configure the cell...
-        let result = records[indexPath.row]
+        let result = ((mySearchController?.isActive)!) ? filterRecords[indexPath.row] : records[indexPath.row]
+        
+        //let result = records[indexPath.row]
         //print(result)
         if let title = result["title"] {
             cell.bookTitle?.text = title
@@ -258,7 +281,8 @@ class ShelveTableViewController: UITableViewController {
         if editingStyle == .delete {
             // Delete the row from the data source
 
-            let result = records[indexPath.row]
+            let result = ((mySearchController?.isActive)!) ? filterRecords[indexPath.row] : records[indexPath.row]
+            //let result = records[indexPath.row]
             if let isbn = result["isbn"] {
                 // delete
                 let coreDataConnect = CoreDataConnect(context: myContext)
