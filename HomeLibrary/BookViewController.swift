@@ -10,23 +10,26 @@ import UIKit
 import CoreData
 
 extension UIImageView {
-   func load(url: URL) {
-       DispatchQueue.global().async { [weak self] in
-           if let data = try? Data(contentsOf: url) {
-               if let image = UIImage(data: data) {
-                   DispatchQueue.main.async {
-                       self?.image = image
-                   }
-               }
-           }
-       }
-   }
+    func load(url: URL) {
+        //背景的queue
+        DispatchQueue.global().async { [weak self] in
+            if let data = try? Data(contentsOf: url) {
+                if let image = UIImage(data: data) {
+                    //前景的queue
+                    DispatchQueue.main.async {
+                        self?.image = image
+                    }
+                }
+            }
+        }
+    }
 }
 
-class BookViewController: UIViewController {
-
+class BookViewController: UIViewController, UITextFieldDelegate {
+    
     @IBOutlet weak var bookCover: UIImageView!
     @IBOutlet weak var bookAddDate: UILabel!
+    @IBOutlet weak var bookISBN: UILabel!
     @IBOutlet weak var bookTitle: UITextView!
     @IBOutlet weak var bookAuthors: UILabel!
     @IBOutlet weak var bookPublisher: UILabel!
@@ -35,98 +38,105 @@ class BookViewController: UIViewController {
     @IBOutlet weak var bookAction: UIButton!
     @IBOutlet weak var bookDelete: UIButton!
     @IBOutlet weak var bookDismiss: UIButton!
+    @IBOutlet weak var bookProvider: UILabel!
     @IBOutlet weak var noteText: UITextField!
     
     var book = [
-                "isbn":"",
-                "title":"",
-                "cover":"",
-                "adddate":"",
-                "authors":"",
-                "publisher":"",
-                "publisheddate":"",
-                "description":"",
-                "note": "",
-                "action":"CREATE",
-                "mode":"present"
-                ]
+        "idx" : "",
+        "isbn":"",
+        "title":"",
+        "cover":"",
+        "adddate":"",
+        "authors":"",
+        "publisher":"",
+        "publisheddate":"",
+        "description":"",
+        "provider": "",
+        "note": "",
+        "action":"CREATE"
+    ]
     @objc func backViewBtnFnc(){
         self.navigationController?.popViewController(animated: true)
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        self.navigationController?.isNavigationBarHidden = false
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        //default
-        bookDelete.isHidden = true
+        
         // Do any additional setup after loading the view.
-        if book["mode"] == "present"{
-            bookDismiss.isHidden = false
-        } else {
+        if let _ = navigationController{
+            //on shelve
+            bookDelete.isHidden = false
             bookDismiss.isHidden = true
-            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "回上一頁", style: .plain, target: self,action: #selector(backViewBtnFnc))
-        }
-        
-        //Connect core data
-        let myEntityName = "Booklists"
-        let myContext =
-             (UIApplication.shared.delegate as! AppDelegate)
-                 .persistentContainer.viewContext
-        
-        let coreDataConnect = CoreDataConnect(context: myContext)
-
-        // select
-        let sql = "isbn = \(book["isbn"]!)"
-        //print(book["isbn"]!)
-        let selectResult = coreDataConnect.retrieve(myEntityName, predicate: sql, sort: [["title":true]], limit: nil)
-        
-        if let results = selectResult {
-            //print(results.count)
             
-            if(results.count > 0){
+            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "回上一頁", style: .plain, target: self,action: #selector(backViewBtnFnc))
+ 
+            bookAction.setTitle("更新資料", for: .normal)
+            bookAction.setImage(UIImage(systemName: "pencil"), for: .normal)
+           
+            book["action"] = "UPDATE"
+            
+            if let adddate = book["adddate"]{
+                bookAddDate.text = "加入書櫃日期: "+adddate
+            } else {
+                bookAddDate.text = ""
+            }
+            noteText.text = book["note"]
+        } else {
+            //in search
+            bookDismiss.isHidden = false
+            if book["action"] == "UPDATE"{
                 bookDelete.isHidden = false
+                
                 bookAction.setTitle("更新資料", for: .normal)
                 bookAction.setImage(UIImage(systemName: "pencil"), for: .normal)
                 
-                book["action"] = "UPDATE"
-            
-                for result in results {
-                    book["adddate"] = result.value(forKey: "adddate")! as? String
-                    noteText.text = result.value(forKey: "note")! as? String
-                    
-                    //print("\(result.value(forKey: "isbn")!). \(result.value(forKey: "title")!)")
-                    
-                    bookTitle.text = result.value(forKey: "title")! as? String
-                    bookAuthors.text = result.value(forKey: "authors")! as? String
-                    bookPublisher.text = result.value(forKey: "publisher")! as? String
-                    bookPublishedDate.text = result.value(forKey: "publisheddate")! as? String
-                    bookDescription.text = result.value(forKey: "bookdescription")! as? String
-
-                    if let cover = result.value(forKey: "cover") as? String {
-                        bookCover.load(url: URL(string: cover )!)
-                    }
-                    
-                    bookAddDate.text = "加入書櫃日期: "+book["adddate"]!
+                if let adddate = book["adddate"]{
+                    bookAddDate.text = "加入書櫃日期: "+adddate
+                } else {
+                    bookAddDate.text = ""
                 }
+                noteText.text = book["note"]
             } else {
                 bookDelete.isHidden = true
+                bookAddDate.isHidden = true
+                
                 bookAction.setTitle("加入書櫃", for: .normal)
                 bookAction.setImage(UIImage(systemName: "plus"), for: .normal)
-                book["action"] = "CREATE"
-                
-                bookTitle.text = book["title"]
-                bookAuthors.text = book["authors"]
-                bookPublisher.text = book["publisher"]
-                bookPublishedDate.text = book["publisheddate"]
-                bookDescription.text = book["description"]
-
-                bookCover.load(url: URL(string: book["cover"]!)!)
-                
-                bookAddDate.isHidden = true
             }
         }
+ 
+        bookISBN.text = book["isbn"]
+        bookTitle.text = book["title"]
+        bookAuthors.text = book["authors"]
+        bookPublisher.text = book["publisher"]
+        bookPublishedDate.text = book["publisheddate"]
+        bookDescription.text = book["description"]
+        if book["provider"] == "books"{
+            bookProvider.text = "博客來"
+        }else{
+            bookProvider.text = book["provider"]
+        }
+        
+        if let cover = book["cover"]{
+            bookCover.load(url: URL(string: cover)!)
+        }
+        //print(book)
+        //收鍵盤
+        noteText.delegate = self
     }
-   
+    
+    //收鍵盤
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+          textField.resignFirstResponder()
+          return true
+    }
+    
     @IBAction func cancel(_ sender: Any) {
         dismiss(animated: true, completion: nil)
     }
@@ -135,88 +145,102 @@ class BookViewController: UIViewController {
         //Connect core data
         let myEntityName = "Booklists"
         let myContext =
-             (UIApplication.shared.delegate as! AppDelegate)
-                 .persistentContainer.viewContext
+            (UIApplication.shared.delegate as! AppDelegate)
+                .persistentContainer.viewContext
         
         let coreDataConnect = CoreDataConnect(context: myContext)
-
+        
         if sender == bookDelete{
             book["action"] = "DELETE"
         }
         
         switch book["action"] {
-            case "CREATE":
-                let today = Date()
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                let adddate = dateFormatter.string(from: today)
+        case "CREATE":
+            let today = Date()
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            let adddate = dateFormatter.string(from: today)
+            
+            // insert
+            let thisbook = [
+                "provider" : "\(book["provider"]!)",
+                "isbn" : "\(book["isbn"]!)",
+                "title" : "\(book["title"]!)",
+                "cover" : "\(book["cover"]!)",
+                "authors" : "\(book["authors"]!)",
+                "publisher" : "\(book["publisher"]!)",
+                "publisheddate" : "\(book["publisheddate"]!)",
+                "bookdescription" : "\(book["description"]!)",
+                "note" : noteText.text!,
+                "adddate" : "\(adddate)",
+            ]
+            let insertResult = coreDataConnect.insert(myEntityName, attributeInfo: thisbook)
+            
+            //print(thisbook)
+            if insertResult {
+                let notificationName = Notification.Name("GetUpdateNotice")
+                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":"0","data":thisbook])
+
+                dismiss(animated: true, completion: nil)
                 
-                // insert
-                let insertResult = coreDataConnect.insert(myEntityName, attributeInfo: [
-                        "isbn" : "\(book["isbn"]!)",
-                        "title" : "\(book["title"]!)",
-                        "cover" : "\(book["cover"]!)",
-                        "authors" : "\(book["authors"]!)",
-                        "publisher" : "\(book["publisher"]!)",
-                        "publisheddate" : "\(book["publisheddate"]!)",
-                        "bookdescription" : "\(book["description"]!)",
-                        "note" : noteText.text!,
-                        "adddate" : "\(adddate)",
-                    ])
-                 if insertResult {
-                    print("新增資料成功")
+                print("新增資料成功")
+            }
+            break;
+        case "UPDATE":
+            // update
+            let sql = "isbn = \(book["isbn"]!)"
+            let updateResult = coreDataConnect.update(
+                myEntityName,
+                predicate: sql,
+                attributeInfo: ["note":noteText.text!])
+            if updateResult {
+                let alert = UIAlertController(title: "", message: "更新資料成功", preferredStyle: .alert)
+                
+                alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: nil))
+ 
+                let notificationName = Notification.Name("GetUpdateNotice")
+                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!,"note":noteText.text!])
+                
+                self.present(alert, animated: true, completion: nil)
+                
+                print("更新資料成功")
+            }
+            break;
+        case "DELETE":
+            // delete
+            let sql = "isbn = \(book["isbn"]!)"
+            let deleteResult = coreDataConnect.delete(
+                myEntityName, predicate: sql)
+            if deleteResult {
+                let notificationName = Notification.Name("GetUpdateNotice")
+                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!])
+
+                if let _ = navigationController{
+                    self.navigationController?.popViewController(animated: true)
+                } else {
                     dismiss(animated: true, completion: nil)
                 }
-                break;
-            case "UPDATE":
-                // update
-                let sql = "isbn = \(book["isbn"]!)"
-                let updateResult = coreDataConnect.update(
-                    myEntityName,
-                    predicate: sql,
-                    attributeInfo: ["note":noteText.text!])
-                if updateResult {
-                    let alert = UIAlertController(title: "", message: "更新資料成功", preferredStyle: .alert)
-                     
-                    alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: nil))
-                    self.present(alert, animated: true, completion: nil)
-
-                    print("更新資料成功")
-                }
-                break;
-            case "DELETE":
-                // delete
-                let sql = "isbn = \(book["isbn"]!)"
-                let deleteResult = coreDataConnect.delete(
-                    myEntityName, predicate: sql)
-                if deleteResult {
-                    print("刪除資料成功")
-                    
-                    if book["mode"] == "present"{
-                        dismiss(animated: true, completion: nil)
-                    } else {
-                        self.navigationController?.popViewController(animated: true)
-                    }
-                    
-                }
-                break;
-            default:
-                print("no action")
-                dismiss(animated: true, completion: nil)
-                break;
+                
+                print("刪除資料成功")
+            }
+            break;
+        default:
+            print("no action")
+            dismiss(animated: true, completion: nil)
+            break;
         }
         
     }
- 
+    
     /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
+     // MARK: - Navigation
+     
+     // In a storyboard-based application, you will often want to do a little preparation before navigation
+     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+     // Get the new view controller using segue.destination.
+     // Pass the selected object to the new view controller.
+     }
+     */
+    
 }
 

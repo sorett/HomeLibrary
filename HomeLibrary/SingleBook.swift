@@ -11,6 +11,7 @@ import Foundation
 struct Books: Codable {
     let items: [Book]
     let totalItems: Int
+    let provider: String
 }
 
 struct Book: Codable {
@@ -19,19 +20,27 @@ struct Book: Codable {
 }
 
 struct VolumeInfo: Codable {
-    let title: String
+    var title: String
     let authors: [String]
-    let publisher, publishedDate, description: String
+    let publisher, publishedDate, bookdescription: String
     let pageCount: Int
     let printType: String
     let categories: [String]
     let contentVersion: String
     let imageLinks: ImageLinks
+    
+    //別名
+    enum CodingKeys: String, CodingKey {
+        case title, authors, publisher, publishedDate
+        case bookdescription = "description"
+        case pageCount, printType, categories, contentVersion, imageLinks
+    }
 }
 
 struct ImageLinks: Codable {
     let thumbnail: String
 }
+
 
 /*
  {

@@ -12,24 +12,33 @@ import CoreData
 class ShelveTableViewController: UITableViewController {
 
     //Connect core data
+    var records:[[String : String]] = []
+    var cloneRecords:[[String : String]] = []
     let myEntityName = "Booklists"
     let myContext =
          (UIApplication.shared.delegate as! AppDelegate)
              .persistentContainer.viewContext
+    @IBOutlet weak var searchTextField: UITextField!
     
+
     @IBSegueAction func showBok(_ coder: NSCoder) -> BookViewController? {
         if let row = tableView.indexPathForSelectedRow?.row {
-            // select
-            let coreDataConnect = CoreDataConnect(context: myContext)
-            let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["title":true]], limit: nil)
 
-            if let result = selectResult?[row] {
-                let isbn = result.value(forKey: "isbn")!
-
+            let result = records[row]
+            if let isbn = result["isbn"]{
                 let controller = BookViewController(coder: coder)
-                
-                controller?.book["isbn"] = isbn as? String
-                controller?.book["mode"] = "navigation"
+                    
+                controller?.book["idx"] = String(row)
+                controller?.book["isbn"] = isbn
+                controller?.book["provider"] = result["provider"]
+                controller?.book["adddate"] = result["adddate"]
+                controller?.book["cover"] = result["cover"]
+                controller?.book["title"] = result["title"]
+                controller?.book["authors"] = result["authors"]
+                controller?.book["publisher"] = result["publisher"]
+                controller?.book["publisheddate"] = result["publisheddate"]
+                controller?.book["description"] = result["bookdescription"]
+                controller?.book["note"] = result["note"]
                 
                 return controller
             } else {
@@ -41,6 +50,19 @@ class ShelveTableViewController: UITableViewController {
 
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        //self.navigationController?.isNavigationBarHidden = true
+        //self.navigationController?.title = "書目列表"
+        
+        //reloadData
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+            //print("reload")
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -51,18 +73,124 @@ class ShelveTableViewController: UITableViewController {
         refreshControl?.attributedTitle = NSAttributedString(string: "更新資料", attributes: attributes)
         refreshControl?.tintColor = UIColor.white
         refreshControl?.backgroundColor = UIColor.black
-        refreshControl?.addTarget(self, action: #selector(getData), for: UIControl.Event.valueChanged)
+        refreshControl?.addTarget(self, action: #selector(getRefreshData), for: UIControl.Event.valueChanged)
         tableView.refreshControl = refreshControl
+        
+        let notificationName = Notification.Name("GetUpdateNotice")
+        NotificationCenter.default.addObserver(self, selector: #selector(updateRecord(notice:)), name: notificationName, object: nil)
         
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
 
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        
+        self.searchTextField!.addTarget(self, action: #selector(self.searchEditBegin(textField:)), for: .editingDidBegin)
+        self.searchTextField!.addTarget(self, action: #selector(self.searchEditEnter), for: .primaryActionTriggered)
+        self.searchTextField!.addTarget(self, action: #selector(self.searchEditChange), for: .editingChanged)
     }
     
+    @objc func searchEditBegin(textField:UITextField){
+        print("begin: \(textField)")
+    }
+    
+    @objc func searchEditEnter(textField:UITextField){
+        print("enter: \(textField)")
+                  /*
+                  let str = sender.text!
+                  for log in records{
+                      if log["title"]!.contains(str) || log["isbn"]!.contains(str){
+                          print(log)
+                          cloneRecords.append(log)
+                      }
+                  }
+                  records = cloneRecords
+                  //reloadData
+                  DispatchQueue.main.async {
+                      self.tableView.reloadData()
+                      //print("reload")
+                  }
+           */
+        
+    }
+       
+    @objc func searchEditChange(textField:UITextField){
+       print("Change: \(textField)")
+    }
+    
+    @objc func updateRecord(notice:Notification){
+        
+        let action = notice.userInfo!["action"] as! String
+        let idx = Int(notice.userInfo!["idx"] as! String)
+        
+        switch action{
+        case "CREATE":
+            let book:[String:String] = notice.userInfo!["data"] as! [String : String]
+            
+            let thisBook = [
+                "provider" : book["provider"]!,
+                "isbn" : book["isbn"]!,
+                "title" : book["title"]!,
+                "authors" : book["authors"]!,
+                "note" : book["note"]!,
+                "bookdescription" : book["bookdescription"]!,
+                "publisher" : book["publisher"]!,
+                "publisheddate" : book["publisheddate"]!,
+                "adddate" : book["adddate"]!,
+                "cover" : book["cover"]!,
+            ]
+            
+            //print(thisBook)
+            records.append(thisBook)
+            break;
+        case "UPDATE":
+            if let note = notice.userInfo!["note"] as? String{
+                records[idx!]["note"] = note
+            }
+            break;
+        case "DELETE":
+            records.remove(at: idx!)
+            break;
+        default:
+            print("nothing")
+            break;
+        }
+   }
+    
     @objc func getData() {
-         DispatchQueue.main.async {
+        //clear all
+        records.removeAll()
+        
+        // select
+        let coreDataConnect = CoreDataConnect(context: myContext)
+        let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["title":true]], limit: nil)
+        if let results = selectResult {
+            for i in 0..<results.count{
+                let result = selectResult?[i]
+                
+                let thisBook = [
+                    "provider" : (result!.value(forKey: "provider") as? String)!,
+                    "isbn" : (result!.value(forKey: "isbn") as? String)!,
+                    "title" : (result!.value(forKey: "title") as? String)!,
+                    "authors" : (result!.value(forKey: "authors") as? String)!,
+                    "note" : (result!.value(forKey: "note") as? String)!,
+                    "bookdescription" : (result!.value(forKey: "bookdescription") as? String)!,
+                    "publisher" : (result!.value(forKey: "publisher") as? String)!,
+                    "publisheddate" : (result!.value(forKey: "publisheddate") as? String)!,
+                    "adddate" : (result!.value(forKey: "adddate") as? String)!,
+                    "cover" : (result!.value(forKey: "cover") as? String)!,
+                ]
+                //print(thisBook)
+                records.append(thisBook)
+            }
+            
+            //print(records)
+            //print(records[0])
+        }
+    }
+    
+    @objc func getRefreshData() {
+        DispatchQueue.main.async {
             self.tableView.reloadData()
             self.refreshControl!.endRefreshing()
         }
@@ -77,43 +205,40 @@ class ShelveTableViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        let coreDataConnect = CoreDataConnect(context: myContext)
-        let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["title":true]], limit: nil)
         
-        if let results = selectResult {
-            print(results.count)
-            return results.count
-        } else {
-            print("no record")
-        }
-        
-        return 0
+        return records.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Shelve", for: indexPath) as! BookListTableViewCell
 
         // Configure the cell...
-    
-        // select
-        let coreDataConnect = CoreDataConnect(context: myContext)
-        let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["title":true]], limit: nil)
-
-        let result = selectResult?[indexPath.row]
-        if let title = result?.value(forKey: "title")! {
-            cell.bookTitle?.text = title as? String
+        let result = records[indexPath.row]
+        //print(result)
+        if let title = result["title"] {
+            cell.bookTitle?.text = title
+            
+            //去除 textView 左右邊距
+            cell.bookTitle?.textContainer.lineFragmentPadding = 0
+            
+            //去除 textView 上下邊距
+            //self.textView.textContainerInset = UIEdgeInsetsZero;
+            
+            //UITextView Margin
+            //cell.bookTitle?.textContainerInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 5)
+            
         }
-        if let authors = result?.value(forKey: "authors")! {
-            cell.bookAuthors?.text = authors as? String
+        if let authors = result["authors"] {
+            cell.bookAuthors?.text = authors
         }
-        if let adddate = result?.value(forKey: "adddate")! {
-            cell.bookAddDate?.text = adddate as? String
+        if let adddate = result["adddate"] {
+            cell.bookAddDate?.text = adddate
         }
-        if let publisheddate = result?.value(forKey: "publisheddate")! {
-            cell.bookPublishDate?.text = publisheddate as? String
+        if let publisheddate = result["publisheddate"] {
+            cell.bookPublishDate?.text = publisheddate
         }
-        if let cover = result?.value(forKey: "cover")! {
-            cell.bookCover.load(url: URL(string: cover as! String)!)
+        if let cover = result["cover"] {
+            cell.bookCover.load(url: URL(string: cover)!)
         }
 
         return cell
@@ -132,19 +257,18 @@ class ShelveTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             // Delete the row from the data source
-            // select
-            let coreDataConnect = CoreDataConnect(context: myContext)
-            let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["title":true]], limit: nil)
 
-            let result = selectResult?[indexPath.row]
-            if let isbn = result?.value(forKey: "isbn")! {
+            let result = records[indexPath.row]
+            if let isbn = result["isbn"] {
                 // delete
-                let sql = "isbn = \(isbn as! String)"
+                let coreDataConnect = CoreDataConnect(context: myContext)
+                let sql = "isbn = \(isbn)"
                 let deleteResult = coreDataConnect.delete(
                     myEntityName, predicate: sql)
                 if deleteResult {
                     print("刪除資料成功")
                 }
+                records.remove(at: indexPath.row)
                 
                 tableView.deleteRows(at: [indexPath], with: .fade)
             }
@@ -154,6 +278,15 @@ class ShelveTableViewController: UITableViewController {
     }
 
     /*
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return "書目列表"
+    }
+    
+    override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 40
+    }
+
+    
     // Override to support rearranging the table view.
     override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
 
@@ -167,12 +300,6 @@ class ShelveTableViewController: UITableViewController {
         return true
     }
     */
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-
-        getData()
-    }
 
     /*
     // MARK: - Navigation

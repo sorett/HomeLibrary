@@ -15,7 +15,7 @@ class BookListTableViewCell: UITableViewCell {
     @IBOutlet weak var bookAuthors: UILabel!
     @IBOutlet weak var bookAddDate: UILabel!
     @IBOutlet weak var bookPublishDate: UILabel!
-    
+        
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
