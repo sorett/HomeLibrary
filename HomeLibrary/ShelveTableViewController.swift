@@ -72,10 +72,10 @@ class ShelveTableViewController: UITableViewController, UISearchResultsUpdating 
         getData()
         //添加刷新
         refreshControl = UIRefreshControl()
-        let attributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
+        let attributes = [NSAttributedString.Key.foregroundColor: UIColor.systemGray]
         refreshControl?.attributedTitle = NSAttributedString(string: "更新資料", attributes: attributes)
-        refreshControl?.tintColor = UIColor.black
-        //refreshControl?.backgroundColor = UIColor.white
+        refreshControl?.tintColor = UIColor.systemGray
+        refreshControl?.backgroundColor = UIColor.systemBackground
         refreshControl?.addTarget(self, action: #selector(getRefreshData), for: UIControl.Event.valueChanged)
         tableView.refreshControl = refreshControl
         
@@ -130,7 +130,8 @@ class ShelveTableViewController: UITableViewController, UISearchResultsUpdating 
         
         let action = notice.userInfo!["action"] as! String
         let idx = Int(notice.userInfo!["idx"] as! String)
-      
+        //let isbn = notice.userInfo!["isbn"] as? String
+
         if (mySearchController?.isActive)! {
             //return filterRecords.count
         } else {
@@ -155,7 +156,7 @@ class ShelveTableViewController: UITableViewController, UISearchResultsUpdating 
                 ]
                 
                 //print(thisBook)
-                records.append(thisBook)
+                records.insert(thisBook, at: 0)
             break;
             
             case "UPDATE":
@@ -180,7 +181,7 @@ class ShelveTableViewController: UITableViewController, UISearchResultsUpdating 
         
         // select
         let coreDataConnect = CoreDataConnect(context: myContext)
-        let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["title":true]], limit: nil)
+        let selectResult = coreDataConnect.retrieve(myEntityName, predicate: nil, sort: [["adddate":false],["title":true]], limit: nil)
         if let results = selectResult {
             for i in 0..<results.count{
                 let result = selectResult?[i]
@@ -261,7 +262,7 @@ class ShelveTableViewController: UITableViewController, UISearchResultsUpdating 
             cell.bookPublishDate?.text = publisheddate
         }
         if let cover = result["cover"] {
-            cell.bookCover.load(url: URL(string: cover)!)
+            cell.bookCover.load(url: URL(string: cover)!, isbn: result["isbn"]!)
         }
 
         return cell

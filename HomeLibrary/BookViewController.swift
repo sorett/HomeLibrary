@@ -10,14 +10,27 @@ import UIKit
 import CoreData
 
 extension UIImageView {
-    func load(url: URL) {
-        //背景的queue
-        DispatchQueue.global().async { [weak self] in
-            if let data = try? Data(contentsOf: url) {
-                if let image = UIImage(data: data) {
-                    //前景的queue
-                    DispatchQueue.main.async {
-                        self?.image = image
+    func load(url: URL, isbn: String) {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        //let imageFileUrl = tempDirectory.appendingPathComponent(url.lastPathComponent)
+        let imageFileUrl = tempDirectory.appendingPathComponent(isbn)
+
+        self.image = nil
+        //print(imageFileUrl)
+        //print(imageFileUrl.path)
+        if FileManager.default.fileExists(atPath: imageFileUrl.path) {
+            let image = UIImage(contentsOfFile: imageFileUrl.path)
+            self.image = image
+        } else {
+            //背景的queue
+            DispatchQueue.global().async { [weak self] in
+                if let data = try? Data(contentsOf: url) {
+                    if let image = UIImage(data: data) {
+                        try? data.write(to: imageFileUrl) //寫入暫存
+                        //前景的queue
+                        DispatchQueue.main.async {
+                            self?.image = image
+                        }
                     }
                 }
             }
@@ -29,6 +42,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
     
     @IBOutlet weak var bookCover: UIImageView!
     @IBOutlet weak var bookAddDate: UILabel!
+
     @IBOutlet weak var bookISBN: UILabel!
     @IBOutlet weak var bookTitle: UITextView!
     @IBOutlet weak var bookAuthors: UILabel!
@@ -68,6 +82,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        self.bookISBN.isUserInteractionEnabled = false
         // Do any additional setup after loading the view.
         if let _ = navigationController{
             //on shelve
@@ -124,7 +139,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
         }
         
         if let cover = book["cover"]{
-            bookCover.load(url: URL(string: cover)!)
+            bookCover.load(url: URL(string: cover)!, isbn: book["isbn"]!)
         }
         //print(book)
         //收鍵盤
@@ -201,7 +216,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
  
                 //跨頁傳送值
                 let notificationName = Notification.Name("GetUpdateNotice")
-                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!,"note":noteText.text!])
+                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!,"note":noteText.text!,"isbn":book["isbn"]!])
                 
                 self.present(alert, animated: true, completion: nil)
                 
@@ -216,7 +231,7 @@ class BookViewController: UIViewController, UITextFieldDelegate {
             if deleteResult {
                 //跨頁傳送值
                 let notificationName = Notification.Name("GetUpdateNotice")
-                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!])
+                NotificationCenter.default.post(name: notificationName, object: nil, userInfo: ["action":book["action"]!,"idx":book["idx"]!,"isbn":book["isbn"]!])
 
                 if let _ = navigationController{
                     self.navigationController?.popViewController(animated: true)
